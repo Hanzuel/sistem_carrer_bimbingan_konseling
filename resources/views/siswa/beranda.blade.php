@@ -3,86 +3,161 @@
 @section('title', 'Beranda Siswa')
 
 @section('content')
-<div class="mx-auto max-w-4xl space-y-6">
-    <div class="card relative overflow-hidden">
-        <div class="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-quest-100/60 blur-2xl" aria-hidden="true"></div>
+@php
+    $studentName = auth()->user()->name ?? auth()->user()->identifier ?? 'Siswa';
+    $className = auth()->user()->classGroup?->name ?? null;
 
-        <div class="relative">
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-quest-50 px-3 py-1 text-xs font-semibold text-quest-700 ring-1 ring-inset ring-quest-200/80">
-                <span class="h-1.5 w-1.5 rounded-full bg-quest-600"></span>
-                Langkah 1 · Beranda & Panduan
+    $misiCards = [
+        [
+            'no' => 'Misi 1',
+            'title' => 'Kenali Diri',
+            'desc' => 'Pilih 1–3 aktivitas favorit, mata pelajaran disukai, suasana belajar nyaman, serta alasan utamanya.',
+            'route' => route('siswa.misi-1'),
+            'done' => !empty($quest->activities) && !empty($quest->favorite_subjects) && !empty($quest->study_environment) && !empty($quest->self_reason),
+        ],
+        [
+            'no' => 'Misi 2',
+            'title' => 'Kartu Profesi',
+            'desc' => 'Jelajahi kategori profesi, baca detail kartu, tandai dibaca, lalu pilih 1–2 profesi.',
+            'route' => route('siswa.misi-2'),
+            'done' => !empty($quest->selected_profession_ids),
+        ],
+        [
+            'no' => 'Misi 3',
+            'title' => 'Cari Jalurnya',
+            'desc' => 'Pilih jalur pendidikan atau pelatihan yang relevan dengan rencana belajarmu.',
+            'route' => route('siswa.misi-3'),
+            'done' => !empty($quest->selected_education_paths),
+        ],
+        [
+            'no' => 'Misi 4',
+            'title' => 'Bandingkan Pilihan',
+            'desc' => 'Bandingkan dua alternatif karier (Karier A vs Karier B) beserta kesimpulan pertimbanganmu.',
+            'route' => route('siswa.misi-4'),
+            'done' => !empty($quest->career_a_title) && !empty($quest->career_b_title) && !empty($quest->comparison_conclusion),
+        ],
+        [
+            'no' => 'Misi 5',
+            'title' => 'Refleksi & Penutup',
+            'desc' => 'Isi refleksi, tindakan minggu ini, angket tanggapan, lalu kirim rekap ke Guru BK.',
+            'route' => route('siswa.misi-5'),
+            'done' => (bool) $quest->is_completed,
+        ],
+    ];
+
+    $completedCount = collect($misiCards)->where('done', true)->count();
+    $progressPercent = ($completedCount / count($misiCards)) * 100;
+    $nextMisi = collect($misiCards)->firstWhere('done', false) ?? end($misiCards);
+@endphp
+
+<div class="space-y-6">
+    {{-- Banner Sapaan Personal Siswa & Progres --}}
+    <div class="rounded-2xl bg-quest-700 p-6 text-white shadow-sm space-y-5">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div class="space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-quest-200">
+                    <span>Perjalanan Karierku</span>
+                    @if ($className)
+                        <span>·</span>
+                        <span>{{ $className }}</span>
+                    @endif
+                </div>
+                <h1 class="text-2xl font-bold sm:text-3xl">Halo, {{ $studentName }}.</h1>
+                <p class="max-w-2xl text-sm leading-relaxed text-quest-100">
+                    Kamu tidak harus punya semua jawaban sekarang. Ikuti tahapan misi secara runtut untuk mengenali minat, menjelajahi profesi, membandingkan pilihan, dan menyusun refleksi bersama Guru BK.
+                </p>
+            </div>
+
+            <div class="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-xs">
+                <div class="text-quest-200">Status Pengiriman Rekap</div>
+                @if ($quest->is_completed)
+                    <div class="mt-0.5 font-semibold text-white">Terkirim ke Guru BK</div>
+                @else
+                    <div class="mt-0.5 font-semibold text-sun-200">Dalam Proses Eksplorasi</div>
+                @endif
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-4 border-t border-white/15 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex-1 space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-quest-100">Progres eksplorasi misi</span>
+                    <span class="font-semibold text-white">{{ $completedCount }} dari {{ count($misiCards) }} misi selesai</span>
+                </div>
+                <div class="h-2.5 w-full overflow-hidden rounded-full bg-quest-950/50">
+                    <div class="h-full rounded-full bg-white transition-all duration-300" style="width: {{ $progressPercent }}%"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+                <a href="{{ $nextMisi['route'] }}" class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-xs font-bold text-quest-800 transition hover:bg-quest-50">
+                    {{ $quest->is_completed ? 'Tinjau Misi 5' : 'Lanjutkan ' . $nextMisi['no'] }} →
+                </a>
+                <a href="{{ route('siswa.pusat-materi') }}" class="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-white/15">
+                    Pusat Materi ({{ $totalMaterials ?? 0 }})
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Info Ringkas Referensi --}}
+    <div class="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-quest-600">Ruang Eksplorasi Siswa</p>
+            <h2 class="mt-0.5 text-lg font-bold text-zinc-950">Peta Alur 5 Misi Eksplorasi Karier</h2>
+        </div>
+        <div class="flex flex-wrap gap-3 text-xs text-zinc-600">
+            <span class="rounded-lg border border-zinc-200 bg-paper px-3 py-1.5">
+                Kartu Profesi Tersedia: <strong class="text-zinc-950">{{ $totalProfessions ?? 0 }}</strong>
             </span>
+            <span class="rounded-lg border border-zinc-200 bg-paper px-3 py-1.5">
+                Modul Pusat Materi: <strong class="text-zinc-950">{{ $totalMaterials ?? 0 }}</strong>
+            </span>
+        </div>
+    </div>
 
-            <h1 class="mt-3 text-2xl font-bold text-zinc-950 sm:text-3xl">
-                Selamat Datang di Career Quest
-            </h1>
-            <p class="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base">
-                Media ini membantu kamu mengenali minat, menelusuri informasi profesi dan jalur pendidikan, membandingkan pilihan, serta menyusun refleksi secara bertahap bersama pendampingan Guru BK.
+    {{-- Grid 5 Misi --}}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        @foreach ($misiCards as $card)
+            <div class="card flex flex-col justify-between">
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-quest-600">{{ $card['no'] }}</span>
+                        @if ($card['done'])
+                            <span class="rounded-full border border-sage-200 bg-sage-50 px-2.5 py-0.5 text-xs font-medium text-sage-700">
+                                Selesai
+                            </span>
+                        @else
+                            <span class="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+                                Belum Selesai
+                            </span>
+                        @endif
+                    </div>
+                    <h3 class="text-lg font-semibold text-zinc-950">{{ $card['title'] }}</h3>
+                    <p class="mt-1.5 text-sm leading-relaxed text-zinc-600">{{ $card['desc'] }}</p>
+                </div>
+                <div class="mt-5">
+                    <a href="{{ $card['route'] }}" class="btn-primary w-full">
+                        Buka {{ $card['no'] }}
+                    </a>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Batas Media & Privasi --}}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="card border-sun-200 bg-sun-50/60">
+            <h3 class="text-sm font-semibold text-zinc-950">Pernyataan Batas Media</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-zinc-700">
+                Career Quest adalah media pendukung layanan bimbingan dan konseling karier, bukan tes psikologi diagnostik dan bukan penentu karier mutlak. Hasil isian digunakan sebagai bahan refleksi serta diskusi bersama Guru BK.
             </p>
         </div>
-
-        <div class="mt-6 flex items-start gap-3.5 rounded-xl border border-sun-200/90 bg-sun-50/80 p-4 text-sm text-sun-900">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0 text-sun-600" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"/>
-                <path d="M12 8v4.5M12 16h.01"/>
-            </svg>
-            <div>
-                <p class="font-semibold text-zinc-950">Batasan Media</p>
-                <p class="mt-1 leading-relaxed text-zinc-700">
-                    Aplikasi ini bukan tes psikologi, bukan alat diagnosis, dan tidak menetapkan profesi tertentu untukmu. Hasil aktivitas dipakai sebagai bahan refleksi dan diskusi bersama Guru BK.
-                </p>
-            </div>
-        </div>
-
-        @php
-            $progressPercent = $totalMissions > 0 ? min(100, round(($completedCount / $totalMissions) * 100)) : 0;
-        @endphp
-
-        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="rounded-xl border border-zinc-200/90 bg-zinc-50/70 p-4">
-                <div class="flex items-center gap-2 text-xs font-medium text-zinc-500">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-quest-600" aria-hidden="true">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                    <span>Kelas / Kelompok Sesi</span>
-                </div>
-                <p class="mt-1.5 font-display text-lg font-semibold text-zinc-950">
-                    {{ $user->classGroup->name ?? 'Belum ditentukan' }}
-                </p>
-            </div>
-
-            <div class="rounded-xl border border-zinc-200/90 bg-zinc-50/70 p-4">
-                <div class="flex items-center justify-between gap-2 text-xs font-medium text-zinc-500">
-                    <span class="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-sage-600" aria-hidden="true">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span>Progres Misi Selesai</span>
-                    </span>
-                    <span class="font-semibold text-quest-700">{{ $progressPercent }}%</span>
-                </div>
-                <p class="mt-1.5 font-display text-lg font-semibold text-zinc-950">
-                    {{ $completedCount }} <span class="text-sm font-normal text-zinc-500">/ {{ $totalMissions }} Misi</span>
-                </p>
-                <div class="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
-                    <div class="h-full rounded-full bg-gradient-to-r from-quest-500 to-quest-700 transition-all duration-500" style="width: {{ $progressPercent }}%"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
-            <p class="text-xs text-zinc-500">Siap memulai perjalanan eksplorasimu?</p>
-            <a href="{{ route('siswa.kenali-diri') }}" class="btn-accent">
-                <span>Mulai Eksplorasi: Kenali Diri</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true">
-                    <path d="M5 12h14"/>
-                     <path d="m12 5 7 7-7 7"/>
-                </svg>
-            </a>
+        <div class="card">
+            <h3 class="text-sm font-semibold text-zinc-950">Kontrol Privasi & Keamanan Data Siswa</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-zinc-600">
+                Data eksplorasi dan refleksi tersimpan pada akunmu untuk keperluan pendampingan bimbingan karier. Pastikan keluar (logout) setelah selesai menggunakan perangkat bersama.
+            </p>
         </div>
     </div>
 </div>

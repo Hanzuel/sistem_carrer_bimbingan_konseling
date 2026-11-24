@@ -12,8 +12,8 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (! $user || ! $user->is_active || ! in_array($user->role, $roles, true)) {
-            abort(403, 'Akses tidak diizinkan untuk peran ini.');
+        if (! $user || ! in_array($user->role, $roles, true)) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 
         return $next($request);

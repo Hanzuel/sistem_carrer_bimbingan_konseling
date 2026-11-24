@@ -1,71 +1,107 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk — Career Quest</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <div class="mb-6">
-            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Career Quest · Bimbingan Karier</p>
-            <h1 class="text-2xl font-semibold mt-1">Masuk ke Aplikasi</h1>
-            <p class="text-sm text-slate-600 mt-1">Gunakan kode/ID pengguna yang diberikan untuk memulai sesi.</p>
+@extends('layouts.app')
+
+@section('title', 'Login Administrator')
+
+@section('content')
+@php
+    $loginAction = Route::has('login.post') ? route('login.post') : route('login');
+@endphp
+
+<div class="mx-auto max-w-md space-y-6 py-4">
+    <div class="card space-y-5">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-quest-600">Akses Terbatas</p>
+            <h1 class="mt-1 text-2xl font-bold text-zinc-950">Login Administrator</h1>
+            <p class="mt-1 text-xs leading-relaxed text-zinc-600">
+                Halaman masuk khusus pengelolaan kelas, akun pengguna, dan administrasi sistem Career Quest.
+            </p>
         </div>
 
-        @if ($errors->any())
-            <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                {{ $errors->first() }}
+        @if (session('status'))
+            <div class="rounded-xl border border-sage-200 bg-sage-50 px-3.5 py-2.5 text-xs text-sage-800">
+                {{ session('status') }}
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
+        @if ($errors->any())
+            <div class="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-700">
+                <ul class="list-disc space-y-0.5 pl-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ $loginAction }}" class="space-y-4">
             @csrf
 
             <div>
-                <label for="identifier" class="block text-sm font-medium text-slate-700 mb-1">
-                    Kode / ID Pengguna
+                <label for="identifier" class="mb-1 block text-xs font-semibold text-zinc-700">
+                    ID / Kode Administrator
                 </label>
                 <input
                     id="identifier"
-                    name="identifier"
                     type="text"
+                    name="identifier"
                     value="{{ old('identifier') }}"
-                    placeholder="Contoh: siswa01, bk01, atau admin01"
                     required
                     autofocus
-                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-slate-900 focus:outline-none"
+                    placeholder="Contoh: admin01"
+                    class="field"
                 >
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">
+                <label for="password" class="mb-1 block text-xs font-semibold text-zinc-700">
                     Kata Sandi
                 </label>
                 <input
                     id="password"
-                    name="password"
                     type="password"
+                    name="password"
                     required
-                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-slate-900 focus:outline-none"
+                    placeholder="Masukkan kata sandi admin"
+                    class="field"
                 >
             </div>
 
-            <div class="flex items-center justify-between text-sm">
-                <label class="inline-flex items-center gap-2 text-slate-600">
-                    <input type="checkbox" name="remember" class="rounded border-slate-300">
-                    <span>Ingat sesi</span>
+            <div class="flex items-center justify-between text-xs">
+                <label class="inline-flex cursor-pointer items-center gap-2 text-zinc-600">
+                    <input type="checkbox" name="remember" class="rounded border-zinc-300 text-quest-600 focus:ring-quest-600">
+                    <span>Ingat sesi saya</span>
                 </label>
             </div>
 
-            <button
-                type="submit"
-                class="w-full rounded-lg bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-800 transition"
-            >
-                Masuk
+            <button type="submit" class="btn-accent w-full">
+                Masuk ke Panel Admin
             </button>
         </form>
+
+        <div class="border-t border-zinc-100 pt-4 space-y-3">
+            <button type="button" onclick="fillAdminDemo('admin01', 'password123')"
+                    class="w-full rounded-lg border border-zinc-200 bg-paper px-3 py-2 text-xs font-medium text-zinc-800 transition hover:border-quest-400 hover:bg-quest-50">
+                Isi Cepat Akun Uji Coba Admin <span class="text-zinc-500">(admin01)</span>
+            </button>
+
+            <div class="text-center">
+                <a href="{{ route('home') }}" class="text-xs font-medium text-zinc-600 underline hover:text-zinc-950">
+                    Kembali ke Halaman Utama (Siswa & Guru BK)
+                </a>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+    function fillAdminDemo(identifier, password) {
+        const idInput = document.getElementById('identifier');
+        const pwInput = document.getElementById('password');
+        if (idInput) idInput.value = identifier;
+        if (pwInput) pwInput.value = password;
+        idInput?.focus();
+    }
+</script>
+@endpush

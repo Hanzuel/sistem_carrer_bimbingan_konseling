@@ -2,27 +2,55 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Mission;
+use App\Models\MediaEvaluation;
+use App\Models\Profession;
 use App\Models\User;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class BkController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard()
     {
-        $bk = Auth::user();
-        $totalMissions = Mission::count();
-
-        $studentsQuery = User::where('role', 'siswa')
-            ->with(['classGroup', 'missionProgresses', 'reflectionEntry']);
-
-        if ($bk->class_group_id) {
-            $studentsQuery->where('class_group_id', $bk->class_group_id);
+        $relations = ['studentQuest', 'mediaEvaluation'];
+        if (Schema::hasTable('class_groups') && Schema::hasColumn('users', 'class_group_id')) {
+            $relations[] = 'classGroup';
         }
 
-        $students = $studentsQuery->orderBy('identifier')->get();
+        $students = User::where('role', 'siswa')
+            ->with($relations)
+            ->orderBy('name')
+            ->get();
 
-        return view('bk.dashboard', compact('students', 'totalMissions'));
+        $professionsById = Profession::pluck('title', 'id');
+
+        $submittedCount = $students->filter(fn ($s) => (bool) optional($s->studentQuest)->is_completed)->count();
+        $evaluatedCount = $students->filter(fn ($s) => !is_null($s->mediaEvaluation))->count();
+
+        $evaluations = MediaEvaluation::all();
+        $avgScore = null;
+        if ($evaluations->isNotEmpty()) {
+            $totalSum = 0;
+            $totalItems = 0;
+            foreach ($evaluations as $ev) {
+                for ($i = 1; $i <= 10; $i++) {
+                    $val = $ev->{"q{$i}"};
+                    if (!is_null($val)) {
+                        $totalSum += (int) $val;
+                        $totalItems++;
+                    }
+                }
+            }
+            if ($totalItems > 0) {
+                $avgScore = round($totalSum / $totalItems, 2);
+            }
+        }
+
+        return view('bk.dashboard', compact(
+            'students',
+            'professionsById',
+            'submittedCount',
+            'evaluatedCount',
+            'avgScore'
+        ));
     }
 }

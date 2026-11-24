@@ -128,29 +128,22 @@
     {{-- LATAR GEOMETRIS — semua animasi digerakkan oleh Motion (vanilla)      --}}
     {{-- ====================================================================== --}}
     <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
-
-        {{-- Wash gradient: biru di atas, amber tipis di bawah --}}
         <div class="absolute inset-x-0 top-0 h-[42rem] bg-gradient-to-b from-quest-50 via-quest-50/40 to-transparent"></div>
         <div class="absolute inset-x-0 bottom-0 h-[28rem] bg-gradient-to-t from-sun-50/50 to-transparent"></div>
 
-        {{-- Orb blur besar — drift di Motion --}}
         <div class="absolute -left-40 top-20 h-[32rem] w-[32rem] rounded-full bg-quest-200/35 blur-3xl" data-motion="drift" data-delay="0"></div>
         <div class="absolute -right-44 top-[18%] h-[34rem] w-[34rem] rounded-full bg-sun-200/25 blur-3xl" data-motion="drift-slow" data-delay="2"></div>
         <div class="absolute -bottom-40 left-1/3 h-[28rem] w-[28rem] rounded-full bg-sage-200/25 blur-3xl" data-motion="drift" data-delay="4"></div>
 
-        {{-- Orb tengah --}}
         <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <div class="h-[40rem] w-[40rem] rounded-full bg-quest-100/30 blur-3xl" data-motion="breathe" data-delay="1"></div>
         </div>
 
-        {{-- Grid titik --}}
         <div class="absolute inset-0 opacity-40 [background-image:radial-gradient(#d4d4d8_1px,transparent_1px)] [background-size:26px_26px] [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_65%)]"
              data-parallax="30"></div>
 
-        {{-- Grid diagonal --}}
         <div class="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(45deg,#18181b_1px,transparent_1px),linear-gradient(-45deg,#18181b_1px,transparent_1px)] [background-size:90px_90px]"></div>
 
-        {{-- Kurva dekoratif --}}
         <svg class="absolute inset-0 h-full w-full opacity-[0.09]" viewBox="0 0 1000 1000" preserveAspectRatio="none" data-parallax="60">
             <path d="M-100,620 Q220,420 500,560 T1100,500"
                   fill="none" stroke="#2A4FEF" stroke-width="1.4" stroke-dasharray="5 9" class="animate-dash-flow"/>
@@ -160,7 +153,6 @@
                   fill="none" stroke="#14B8A6" stroke-width="1" stroke-dasharray="2 7"/>
         </svg>
 
-        {{-- klaster kiri-atas --}}
         <div class="absolute left-[8%] top-[16%]" data-motion="float" data-delay="0.2">
             <div class="h-14 w-14 rotate-12 rounded-2xl border border-quest-300/60"></div>
         </div>
@@ -171,7 +163,6 @@
             <div class="h-3 w-3 rounded-full border border-sage-400/60"></div>
         </div>
 
-        {{-- klaster kanan-atas --}}
         <div class="absolute right-[9%] top-[13%]" data-motion="float-slow" data-delay="0.4">
             <div class="h-28 w-28 rounded-full border-2 border-quest-300/45"></div>
         </div>
@@ -187,7 +178,6 @@
             <div class="h-2 w-12 rounded-full bg-sage-300/60"></div>
         </div>
 
-        {{-- klaster kiri-tengah --}}
         <div class="absolute left-[11%] top-[48%]" data-motion="spin" data-delay="1">
             <svg class="h-16 w-16 text-sage-400/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
                 <path d="M12 2 22 20H2Z" stroke-linejoin="round"/>
@@ -200,7 +190,6 @@
             <div class="h-1.5 w-1.5 rounded-full bg-quest-500/60"></div>
         </div>
 
-        {{-- klaster kanan-tengah --}}
         <div class="absolute right-[12%] top-[44%]" data-motion="float" data-delay="1.4">
             <svg class="h-16 w-16 text-quest-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
                 <path d="M12 2 20 7v10l-8 5-8-5V7Z" stroke-linejoin="round"/>
@@ -214,7 +203,6 @@
             </div>
         </div>
 
-        {{-- klaster kiri-bawah --}}
         <div class="absolute left-[14%] bottom-[16%]" data-motion="float-slow" data-delay="0.5">
             <div class="grid h-24 w-24 place-items-center rounded-full border border-sun-300/55">
                 <div class="grid h-16 w-16 place-items-center rounded-full border border-sun-300/55">
@@ -229,7 +217,6 @@
             <div class="h-2.5 w-2.5 rounded-full bg-sun-400/70"></div>
         </div>
 
-        {{-- klaster kanan-bawah --}}
         <div class="absolute right-[12%] bottom-[20%]" data-motion="float" data-delay="1.6">
             <div class="h-12 w-12 rotate-45 rounded-lg border border-quest-300/60"></div>
         </div>
@@ -242,7 +229,6 @@
             </svg>
         </div>
 
-        {{-- aksen tengah --}}
         <div class="absolute left-[42%] top-[16%]" data-motion="float-slow" data-delay="0.1">
             <svg class="h-8 w-8 text-sun-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18"/>
@@ -258,7 +244,6 @@
             <div class="h-1.5 w-10 rounded-full bg-quest-300/60"></div>
         </div>
 
-        {{-- Grain overlay --}}
         <div class="absolute inset-0 bg-grain opacity-[0.05] mix-blend-multiply"></div>
     </div>
 
@@ -305,18 +290,18 @@
             @endauth
         </div>
 
-        {{-- Jalur perjalanan siswa (7 langkah) --}}
+        {{-- Jalur perjalanan siswa (5 Misi + Pusat Materi) --}}
         @auth
             @if (auth()->user()->role === 'siswa')
                 @php
                     $langkah = [
-                        ['route' => 'siswa.beranda',           'label' => 'Beranda'],
-                        ['route' => 'siswa.kenali-diri',       'label' => 'Kenali Diri'],
-                        ['route' => 'siswa.kartu-profesi',     'label' => 'Kartu Profesi'],
-                        ['route' => 'siswa.misi',              'label' => 'Misi'],
-                        ['route' => 'siswa.tantangan-pilihan', 'label' => 'Tantangan Pilihan'],
-                        ['route' => 'siswa.refleksi',          'label' => 'Refleksi'],
-                        ['route' => 'siswa.penutup',           'label' => 'Penutup'],
+                        ['route' => 'siswa.beranda',      'label' => 'Beranda'],
+                        ['route' => 'siswa.misi-1',       'label' => 'Misi 1: Kenali Diri'],
+                        ['route' => 'siswa.misi-2',       'label' => 'Misi 2: Kartu Profesi'],
+                        ['route' => 'siswa.misi-3',       'label' => 'Misi 3: Cari Jalurnya'],
+                        ['route' => 'siswa.misi-4',       'label' => 'Misi 4: Bandingkan'],
+                        ['route' => 'siswa.misi-5',       'label' => 'Misi 5: Refleksi'],
+                        ['route' => 'siswa.pusat-materi', 'label' => 'Pusat Materi'],
                     ];
 
                     $posisi = collect($langkah)->search(fn ($l) => request()->routeIs($l['route'], $l['route'] . '.*'));
@@ -409,13 +394,13 @@
 
     {{-- ===================== KONTEN ===================== --}}
     <main id="konten" class="relative z-0 mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:py-12">
-        @if (session('status'))
+        @if (session('status') || session('success'))
             <div role="status" class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm shadow-emerald-900/[0.04]" data-no-animate>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true">
                     <circle cx="12" cy="12" r="9"/>
                     <path d="m8.5 12.5 2.5 2.5 4.5-5"/>
                 </svg>
-                <p class="font-medium">{{ session('status') }}</p>
+                <p class="font-medium">{{ session('status') ?? session('success') }}</p>
             </div>
         @endif
 
@@ -483,7 +468,6 @@
 
             const { animate } = M;
 
-            /* ---------- 1. PRESET LOOP ANIMASI (Array [keyframes, options]) ---------- */
             const presets = {
                 float:        (d) => [{ y: [0, -18, 0] },                                  { duration: 9,  ease: 'easeInOut', repeat: Infinity, delay: d }],
                 'float-slow': (d) => [{ y: [0, -28, 0] },                                  { duration: 13, ease: 'easeInOut', repeat: Infinity, delay: d }],
@@ -506,7 +490,6 @@
                 animate(el, keyframes, options);
             });
 
-            /* ---------- 2. PARALLAX ---------- */
             const parallaxEls = [...document.querySelectorAll('[data-parallax]')];
             if (parallaxEls.length) {
                 const applyParallax = (progress) => {
@@ -537,7 +520,6 @@
                 }
             }
 
-            /* ---------- 3. CARD ENTRANCE (non-destructive, tidak pernah hide permanen) ---------- */
             const cards = [...document.querySelectorAll('.card:not([data-no-animate])')];
             cards.forEach((card, i) => {
                 animate(

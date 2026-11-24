@@ -2,207 +2,313 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Mission;
-use App\Models\MissionProgress;
-use App\Models\ProfessionCard;
-use App\Models\ReflectionEntry;
-use Illuminate\Http\RedirectResponse;
+use App\Models\LearningMaterial;
+use App\Models\MediaEvaluation;
+use App\Models\Profession;
+use App\Models\StudentQuest;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 
 class SiswaController extends Controller
 {
-    private function getOrCreateReflection(int $userId): ReflectionEntry
+    private function getQuest(): StudentQuest
     {
-        return ReflectionEntry::firstOrCreate(
-            ['user_id' => $userId],
-            ['shared_with_bk' => false]
+        return StudentQuest::firstOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'activities' => [],
+                'favorite_subjects' => [],
+                'read_profession_ids' => [],
+                'selected_profession_ids' => [],
+                'selected_education_paths' => [],
+                'is_completed' => false,
+            ]
         );
     }
 
-    private function markMissionCompleted(int $userId, string $missionType, array $payload = []): void
+    private function mergeProfessionIds(array $existingIds, array $visibleIds, array $checkedVisibleIds): array
     {
-        $mission = Mission::where('mission_type', $missionType)->first();
-        if (! $mission) {
-            return;
+        $existing = collect($existingIds)->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0);
+        $visible  = collect($visibleIds)->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0);
+        $checked  = collect($checkedVisibleIds)->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0);
+
+        return $existing
+            ->reject(fn ($id) => $visible->contains($id))
+            ->merge($checked)
+            ->unique()
+            ->take(2)
+            ->values()
+            ->all();
+    }
+
+    public function beranda()
+    {
+        $quest = $this->getQuest();
+        $totalProfessions = Profession::count();
+        $totalMaterials = LearningMaterial::count();
+
+        return view('siswa.beranda', compact('quest', 'totalProfessions', 'totalMaterials'));
+    }
+
+    public function pusatMateri(Request $request)
+    {
+        $category = $request->query('category');
+        $categories = LearningMaterial::whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
+
+        $materials = LearningMaterial::when($category, function ($query) use ($category) {
+            $query->where('category', $category);
+        })->orderBy('id')->get();
+
+        return view('siswa.pusat-materi', compact('materials', 'categories', 'category'));
+    }
+
+    // Misi 1: Kenali Diri
+    public function misiSatu()
+    {
+        $quest = $this->getQuest();
+
+        return view('siswa.misi-1', compact('quest'));
+    }
+
+    public function simpanMisiSatu(Request $request)
+    {
+        $validated = $request->validate([
+            'activities' => ['required', 'array', 'min:1', 'max:3'],
+            'activities.*' => ['required', 'string', 'max:120'],
+            'favorite_subjects' => ['required', 'array', 'min:1', 'max:5'],
+            'favorite_subjects.*' => ['required', 'string', 'max:120'],
+            'study_environment' => ['required', 'string', 'max:255'],
+            'self_reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $quest = $this->getQuest();
+        $quest->update([
+            'activities' => array_values($validated['activities']),
+            'favorite_subjects' => array_values($validated['favorite_subjects']),
+            'study_environment' => $validated['study_environment'],
+            'self_reason' => $validated['self_reason'],
+        ]);
+
+        return redirect()->route('siswa.misi-2')->with('success', 'Misi 1 (Kenali Diri) berhasil disimpan.');
+    }
+
+    // Misi 2: Kartu Profesi Interaktif
+    public function misiDua(Request $request)
+    {
+        $quest = $this->getQuest();
+        $category = $request->query('category');
+        $categories = Profession::distinct()->pluck('category');
+
+        $professions = Profession::when($category, function ($query) use ($category) {
+            $query->where('category', $category);
+        })->orderBy('id')->get();
+
+        return view('siswa.misi-2', compact('quest', 'professions', 'categories', 'category'));
+    }
+
+    public function tandaiDibaca(Request $request, Profession $profession)
+    {
+        $quest = $this->getQuest();
+
+        $mergedSelected = $this->mergeProfessionIds(
+            $quest->selected_profession_ids ?? [],
+            $request->input('visible_profession_ids', []),
+            $request->input('selected_profession_ids', [])
+        );
+
+        $readIds = collect($quest->read_profession_ids ?? [])
+            ->push($profession->id)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $quest->update([
+            'read_profession_ids' => $readIds,
+            'selected_profession_ids' => $mergedSelected,
+        ]);
+
+        return back()->with('success', "Kartu profesi \"{$profession->title}\" ditandai sudah dibaca.");
+    }
+
+    public function autoSaveMisiDua(Request $request)
+    {
+        $validated = $request->validate([
+            'selected_profession_ids' => ['nullable', 'array'],
+            'selected_profession_ids.*' => ['integer', 'exists:professions,id'],
+            'visible_profession_ids' => ['nullable', 'array'],
+            'visible_profession_ids.*' => ['integer'],
+        ]);
+
+        $quest = $this->getQuest();
+
+        $selectedIds = $this->mergeProfessionIds(
+            $quest->selected_profession_ids ?? [],
+            $validated['visible_profession_ids'] ?? [],
+            $validated['selected_profession_ids'] ?? []
+        );
+
+        $quest->update([
+            'selected_profession_ids' => $selectedIds,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'selected_profession_ids' => $selectedIds,
+            'count' => count($selectedIds),
+        ]);
+    }
+
+    public function simpanMisiDua(Request $request)
+    {
+        $validated = $request->validate([
+            'selected_profession_ids' => ['nullable', 'array'],
+            'selected_profession_ids.*' => ['integer', 'exists:professions,id'],
+            'visible_profession_ids' => ['nullable', 'array'],
+            'visible_profession_ids.*' => ['integer'],
+        ]);
+
+        $quest = $this->getQuest();
+
+        $selectedIds = $this->mergeProfessionIds(
+            $quest->selected_profession_ids ?? [],
+            $validated['visible_profession_ids'] ?? [],
+            $validated['selected_profession_ids'] ?? []
+        );
+
+        if (count($selectedIds) < 1 || count($selectedIds) > 2) {
+            return back()
+                ->withInput()
+                ->withErrors(['selected_profession_ids' => 'Pilih 1 hingga 2 kartu profesi sebelum lanjut ke Misi 3.']);
         }
 
-        MissionProgress::updateOrCreate(
-            [
-                'user_id' => $userId,
-                'mission_id' => $mission->id,
-            ],
-            [
-                'status' => 'completed',
-                'response_data' => $payload,
-                'completed_at' => now(),
-            ]
-        );
-    }
-
-    public function beranda(): View
-    {
-        $user = Auth::user();
-        $totalMissions = Mission::count();
-        $completedCount = MissionProgress::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->count();
-
-        return view('siswa.beranda', compact('user', 'totalMissions', 'completedCount'));
-    }
-
-    public function kenaliDiri(): View
-    {
-        $reflection = $this->getOrCreateReflection(Auth::id());
-
-        return view('siswa.kenali-diri', compact('reflection'));
-    }
-
-    public function simpanKenaliDiri(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'liked_activities_text' => ['nullable', 'string', 'max:1000'],
-            'liked_subjects_text' => ['nullable', 'string', 'max:1000'],
-            'interest_notes' => ['nullable', 'string', 'max:2000'],
+        $quest->update([
+            'selected_profession_ids' => $selectedIds,
         ]);
 
-        $activities = array_values(array_filter(array_map('trim', explode(',', $validated['liked_activities_text'] ?? ''))));
-        $subjects = array_values(array_filter(array_map('trim', explode(',', $validated['liked_subjects_text'] ?? ''))));
-
-        $reflection = $this->getOrCreateReflection(Auth::id());
-        $reflection->update([
-            'liked_activities' => $activities,
-            'liked_subjects' => $subjects,
-            'interest_notes' => $validated['interest_notes'] ?? null,
-        ]);
-
-        $this->markMissionCompleted(Auth::id(), 'self_reflection', [
-            'activities' => $activities,
-            'subjects' => $subjects,
-        ]);
-
-        return redirect()->route('siswa.kartu-profesi')
-            ->with('status', 'Catatan Kenali Diri tersimpan sebagai bahan refleksi.');
+        return redirect()->route('siswa.misi-3')->with('success', 'Pilihan kartu profesi pada Misi 2 berhasil disimpan.');
     }
 
-    public function kartuProfesi(): View
+    // Misi 3: Cari Jalurnya
+    public function misiTiga()
     {
-        $cards = ProfessionCard::where('is_published', true)->orderBy('title')->get();
+        $quest = $this->getQuest();
+        $selectedProfessions = Profession::whereIn('id', $quest->selected_profession_ids ?? [])->get();
 
-        return view('siswa.kartu-profesi', compact('cards'));
-    }
-
-    public function misi(): View
-    {
-        $missions = Mission::orderBy('step_order')->get();
-        $progresses = MissionProgress::where('user_id', Auth::id())
-            ->get()
-            ->keyBy('mission_id');
-
-        return view('siswa.misi', compact('missions', 'progresses'));
-    }
-
-    public function simpanMisi(Request $request, Mission $mission): RedirectResponse
-    {
-        $validated = $request->validate([
-            'notes' => ['required', 'string', 'max:2000'],
-            'source_link' => ['nullable', 'string', 'max:500'],
-        ]);
-
-        MissionProgress::updateOrCreate(
-            [
-                'user_id' => Auth::id(),
-                'mission_id' => $mission->id,
-            ],
-            [
-                'status' => 'completed',
-                'response_data' => [
-                    'notes' => $validated['notes'],
-                    'source_link' => $validated['source_link'] ?? null,
-                ],
-                'completed_at' => now(),
-            ]
-        );
-
-        return back()->with('status', $mission->title.' ditandai selesai.');
-    }
-
-    public function tantanganPilihan(): View
-    {
-        $reflection = $this->getOrCreateReflection(Auth::id());
-        $compared = $reflection->compared_options ?? [];
-
-        return view('siswa.tantangan-pilihan', compact('reflection', 'compared'));
-    }
-
-    public function simpanTantanganPilihan(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'option_one' => ['required', 'string', 'max:255'],
-            'option_two' => ['required', 'string', 'max:255'],
-            'comparison_notes' => ['required', 'string', 'max:2500'],
-            'unknown_aspects' => ['nullable', 'string', 'max:1500'],
-        ]);
-
-        $comparedPayload = [
-            'option_one' => $validated['option_one'],
-            'option_two' => $validated['option_two'],
-            'comparison_notes' => $validated['comparison_notes'],
-            'unknown_aspects' => $validated['unknown_aspects'] ?? null,
+        $educationOptions = [
+            'Jalur Akademik / Perguruan Tinggi (SNBP / SNBT / Mandiri)',
+            'Jalur Vokasi / Politeknik / Diploma (D3 / D4)',
+            'Sekolah Kedinasan',
+            'Pelatihan Keterampilan / Sertifikasi / Bootcamp',
+            'Magang / Praktik Kerja & Wirausaha',
         ];
 
-        $reflection = $this->getOrCreateReflection(Auth::id());
-        $reflection->update([
-            'compared_options' => $comparedPayload,
-        ]);
-
-        $this->markMissionCompleted(Auth::id(), 'compare_options', $comparedPayload);
-
-        return redirect()->route('siswa.refleksi')
-            ->with('status', 'Perbandingan pilihan karier berhasil disimpan.');
+        return view('siswa.misi-3', compact('quest', 'selectedProfessions', 'educationOptions'));
     }
 
-    public function refleksi(): View
-    {
-        $reflection = $this->getOrCreateReflection(Auth::id());
-
-        return view('siswa.refleksi', compact('reflection'));
-    }
-
-    public function simpanRefleksi(Request $request): RedirectResponse
+    public function simpanMisiTiga(Request $request)
     {
         $validated = $request->validate([
-            'new_learnings' => ['required', 'string', 'max:2000'],
-            'follow_up_questions' => ['nullable', 'string', 'max:2000'],
-            'next_action' => ['required', 'string', 'max:2000'],
+            'selected_education_paths' => ['required', 'array', 'min:1'],
+            'selected_education_paths.*' => ['required', 'string', 'max:200'],
         ]);
 
-        $reflection = $this->getOrCreateReflection(Auth::id());
-        $reflection->update($validated);
-
-        $this->markMissionCompleted(Auth::id(), 'next_step', [
-            'next_action' => $validated['next_action'],
+        $quest = $this->getQuest();
+        $quest->update([
+            'selected_education_paths' => array_values($validated['selected_education_paths']),
         ]);
 
-        return redirect()->route('siswa.penutup')
-            ->with('status', 'Refleksi dan rencana langkah berikutnya tersimpan.');
+        return redirect()->route('siswa.misi-4')->with('success', 'Pilihan jalur pendidikan & pelatihan pada Misi 3 berhasil disimpan.');
     }
 
-    public function penutup(Request $request): View
+    // Misi 4: Bandingkan Pilihan
+    public function misiEmpat()
     {
-    $reflection = $this->getOrCreateReflection($request->user()->id);
+        $quest = $this->getQuest();
+        $selectedProfessions = Profession::whereIn('id', $quest->selected_profession_ids ?? [])->get();
 
-    return view('siswa.penutup', compact('reflection'));
+        return view('siswa.misi-4', compact('quest', 'selectedProfessions'));
     }
 
-    public function bagikanRefleksi(Request $request): RedirectResponse
+    public function simpanMisiEmpat(Request $request)
     {
-        $reflection = $this->getOrCreateReflection(Auth::id());
-        $reflection->update([
-            'shared_with_bk' => $request->boolean('shared_with_bk'),
+        $validated = $request->validate([
+            'career_a_title' => ['required', 'string', 'max:150'],
+            'career_a_notes' => ['required', 'string', 'max:2000'],
+            'career_b_title' => ['required', 'string', 'max:150'],
+            'career_b_notes' => ['required', 'string', 'max:2000'],
+            'comparison_conclusion' => ['required', 'string', 'max:2000'],
         ]);
 
-        return back()->with('status', 'Preferensi berbagi catatan refleksi ke Guru BK telah diperbarui.');
+        $quest = $this->getQuest();
+        $quest->update($validated);
+
+        return redirect()->route('siswa.misi-5')->with('success', 'Perbandingan dua alternatif karier pada Misi 4 berhasil disimpan.');
+    }
+
+    // Misi 5: Refleksi & Penutup + Angket Tanggapan + Kirim Rekap
+    public function misiLima()
+    {
+        $quest = $this->getQuest();
+        $evaluation = MediaEvaluation::where('user_id', Auth::id())->first();
+
+        $weeklyActions = [
+            'Berdiskusi dengan Guru BK',
+            'Membaca Modul di Pusat Materi',
+            'Berdiskusi dengan Orang Tua / Praktisi',
+        ];
+
+        $evaluationQuestions = [
+            1 => 'Petunjuk penggunaan Career Quest mudah dipahami.',
+            2 => 'Saya dapat menemukan menu yang dibutuhkan dengan mudah.',
+            3 => 'Informasi pada kartu profesi disajikan dengan jelas.',
+            4 => 'Aktivitas misi membantu saya mencari informasi karier.',
+            5 => 'Pertanyaan refleksi membantu saya memikirkan minat dan kegiatan yang disukai.',
+            6 => 'Saya dapat membandingkan pilihan karier dengan lebih terarah setelah aktivitas.',
+            7 => 'Media tidak membuat saya merasa harus memilih satu profesi tertentu.',
+            8 => 'Saya memahami bahwa hasil isian hanya untuk refleksi, bukan diagnosis atau penentu karier.',
+            9 => 'Tampilan dan tulisan nyaman dibaca.',
+            10 => 'Saya mengetahui langkah berikutnya untuk mengeksplorasi karier.',
+        ];
+
+        return view('siswa.misi-5', compact('quest', 'evaluation', 'weeklyActions', 'evaluationQuestions'));
+    }
+
+    public function simpanMisiLima(Request $request)
+    {
+        $rules = [
+            'learned_summary' => ['required', 'string', 'max:2500'],
+            'bk_discussion_topic' => ['required', 'string', 'max:2500'],
+            'weekly_action' => ['required', 'string', 'max:150'],
+        ];
+
+        for ($i = 1; $i <= 10; $i++) {
+            $rules["q{$i}"] = ['required', 'integer', 'between:1,4'];
+        }
+
+        $validated = $request->validate($rules);
+
+        $quest = $this->getQuest();
+        $quest->update([
+            'learned_summary' => $validated['learned_summary'],
+            'bk_discussion_topic' => $validated['bk_discussion_topic'],
+            'weekly_action' => $validated['weekly_action'],
+            'is_completed' => true,
+            'submitted_at' => now(),
+        ]);
+
+        $evalData = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $evalData["q{$i}"] = (int) $validated["q{$i}"];
+        }
+
+        MediaEvaluation::updateOrCreate(
+            ['user_id' => Auth::id()],
+            $evalData
+        );
+
+        return redirect()->route('siswa.misi-5')->with('success', 'Misi 5 selesai dan rekap berhasil dikirim ke Guru BK.');
     }
 }
